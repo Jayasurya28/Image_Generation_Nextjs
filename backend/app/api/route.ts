@@ -10,7 +10,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, steps = 5 } = body;
+    const { prompt, steps = 50 } = body;
 
     if (!prompt) {
       return NextResponse.json(
@@ -20,10 +20,12 @@ export async function POST(req: NextRequest) {
     }
 
     const image = await hf.textToImage({
-      model: "black-forest-labs/FLUX.1-dev",
+      model: "stabilityai/stable-diffusion-2",
       inputs: prompt,
-      parameters: { num_inference_steps: steps },
-      provider: "replicate",
+      parameters: {
+        negative_prompt: "blurry, bad quality, worst quality, low quality",
+        num_inference_steps: steps,
+      }
     });
 
     // Convert the Blob to an ArrayBuffer
@@ -37,10 +39,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error('Image generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate image';
     return NextResponse.json(
-      { error: error.message || 'Failed to generate image' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
